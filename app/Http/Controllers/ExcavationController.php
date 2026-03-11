@@ -22,13 +22,11 @@ class ExcavationController extends Controller
         ];
 
         $unit = strtolower($unit);
-      
         return (float)$value * ($conversionRates[$unit] ?? 1);
     }
 
     public function calculate(Request $request)
     {
-      
         $request->validate([
             'v_depth' => 'required|numeric|min:0', 
             'dist_edge' => 'required|numeric|min:0',
@@ -36,23 +34,20 @@ class ExcavationController extends Controller
             'dist_unit' => 'required|in:mm,cm,m,in,ft',
         ]);
 
-     
         $vDepthMm = $this->convertToMm($request->v_depth, $request->v_unit);
         $distEdgeMm = $this->convertToMm($request->dist_edge, $request->dist_unit);
 
-        
         $zone = 1;
         $status = "ZONE 1";
         $message = "SAFE: Excavation is within safe limits.";
         $colorClass = "zone-1";
 
-       if ($distEdgeMm == 0 && $vDepthMm > 0) {
+        if ($distEdgeMm == 0 && $vDepthMm > 0) {
             $zone = 3;
         } else {
-          
-        if ($vDepthMm > ($distEdgeMm * 0.7)) {
+            if ($vDepthMm > ($distEdgeMm * 1.0)) {
                 $zone = 3;
-            } elseif ($vDepthMm > ($distEdgeMm * 0.4)) {
+            } elseif ($vDepthMm > ($distEdgeMm * 0.67)) {
                 $zone = 2;
             }
         }
@@ -67,7 +62,6 @@ class ExcavationController extends Controller
             $colorClass = "zone-2";
         }
 
-       
         return back()->with([
             'zone' => $zone,
             'status' => $status,
