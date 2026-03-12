@@ -45,9 +45,12 @@ class ExcavationController extends Controller
         if ($distEdgeMm == 0 && $vDepthMm > 0) {
             $zone = 3;
         } else {
-            if ($vDepthMm > ($distEdgeMm * 1.0)) {
+         
+        if ($vDepthMm > ($distEdgeMm * 0.85)) {
                 $zone = 3;
-            } elseif ($vDepthMm > ($distEdgeMm * 0.67)) {
+            } 
+        
+            elseif ($vDepthMm > ($distEdgeMm * 0.60)) {
                 $zone = 2;
             }
         }
