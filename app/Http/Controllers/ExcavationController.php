@@ -28,7 +28,7 @@ class ExcavationController extends Controller
     public function calculate(Request $request)
     {
         $request->validate([
-            'v_depth' => 'required|numeric|min:0', 
+            'v_depth' => 'required|numeric|min:0',
             'dist_edge' => 'required|numeric|min:0',
             'v_unit' => 'required|in:mm,cm,m,in,ft',
             'dist_unit' => 'required|in:mm,cm,m,in,ft',
@@ -38,19 +38,16 @@ class ExcavationController extends Controller
         $distEdgeMm = $this->convertToMm($request->dist_edge, $request->dist_unit);
 
         $zone = 1;
-        $status = "ZONE 1";
-        $message = "SAFE: Excavation is within safe limits.";
-        $colorClass = "zone-1";
 
-        if ($distEdgeMm == 0 && $vDepthMm > 0) {
+        if ($distEdgeMm <= 457.2) {
             $zone = 3;
         } else {
-         
-        if ($vDepthMm > ($distEdgeMm * 0.85)) {
+            // تنظیم ضرایب بر اساس ویدیو برای فاصله 7ft
+            // Zone 3: 0.55 (3.9ft / 7ft = 0.557)
+            // Zone 2: 0.45 (3.2ft / 7ft = 0.457)
+            if ($vDepthMm >= ($distEdgeMm * 0.55)) {
                 $zone = 3;
-            } 
-        
-            elseif ($vDepthMm > ($distEdgeMm * 0.60)) {
+            } elseif ($vDepthMm >= ($distEdgeMm * 0.45)) {
                 $zone = 2;
             }
         }
@@ -63,6 +60,10 @@ class ExcavationController extends Controller
             $status = "ZONE 2";
             $message = "CAUTION: MONITOR EXCAVATION. SUPPORT MAY BE REQUIRED.";
             $colorClass = "zone-2";
+        } else {
+            $status = "ZONE 1";
+            $message = "SAFE: Excavation is within safe limits.";
+            $colorClass = "zone-1";
         }
 
         return back()->with([
@@ -70,7 +71,7 @@ class ExcavationController extends Controller
             'status' => $status,
             'message' => $message,
             'color' => $colorClass,
-            'mm_value' => round($vDepthMm, 2), 
+            'mm_value' => round($vDepthMm, 2),
             'dist_mm' => round($distEdgeMm, 2)
         ]);
     }
