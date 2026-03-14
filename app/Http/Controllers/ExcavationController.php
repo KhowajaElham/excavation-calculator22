@@ -37,18 +37,22 @@ class ExcavationController extends Controller
         $vDepthMm = $this->convertToMm($request->v_depth, $request->v_unit);
         $distEdgeMm = $this->convertToMm($request->dist_edge, $request->dist_unit);
 
+        $hOffset = 457.2; 
+        $vOffset = 570.0; 
         $zone = 1;
 
-        if ($distEdgeMm <= 457.2) {
+        if ($distEdgeMm <= $hOffset) {
             $zone = 3;
         } else {
-            // تنظیم ضرایب بر اساس ویدیو برای فاصله 7ft
-            // Zone 3: 0.55 (3.9ft / 7ft = 0.557)
-            // Zone 2: 0.45 (3.2ft / 7ft = 0.457)
-            if ($vDepthMm >= ($distEdgeMm * 0.55)) {
-                $zone = 3;
-            } elseif ($vDepthMm >= ($distEdgeMm * 0.45)) {
-                $zone = 2;
+            $effectiveDist = $distEdgeMm - $hOffset;
+            $effectiveDepth = $vDepthMm - $vOffset;
+
+            if ($effectiveDepth > 0) {
+                if ($effectiveDepth >= ($effectiveDist * 1.0)) {
+                    $zone = 3;
+                } elseif ($effectiveDepth >= ($effectiveDist * 0.666)) {
+                    $zone = 2;
+                }
             }
         }
 
