@@ -20,9 +20,7 @@ class ExcavationController extends Controller
             'in' => 25.4,
             'ft' => 304.8,
         ];
-
-        $unit = strtolower($unit);
-        return (float)$value * ($conversionRates[$unit] ?? 1);
+        return (float)$value * ($conversionRates[strtolower($unit)] ?? 1);
     }
 
     public function calculate(Request $request)
@@ -35,48 +33,44 @@ class ExcavationController extends Controller
         ]);
 
         $vDepthMm = $this->convertToMm($request->v_depth, $request->v_unit);
-        $distEdgeMm = $this->convertToMm($request->dist_edge, $request->dist_unit);
+        $distRailMm = $this->convertToMm($request->dist_edge, $request->dist_unit);
 
-        $hOffset = 457.2; 
-        $vOffset = 570.0; 
+        // Offset from Rail to Theoretical Ballast Toe (Approx 37 inches)
+        // 19" (Rail to Tie edge) + 18" (Tie edge to Toe) = 37"
+        $hOffsetMm = 37 * 25.4; 
+        
         $zone = 1;
 
-        if ($distEdgeMm <= $hOffset) {
+        if ($distRailMm <= $hOffsetMm) {
             $zone = 3;
         } else {
-            $effectiveDist = $distEdgeMm - $hOffset;
-            $effectiveDepth = $vDepthMm - $vOffset;
+            $H = $distRailMm - $hOffsetMm;
+            $V = $vDepthMm; // Using full depth from rail level as per Excel logic
 
-            if ($effectiveDepth > 0) {
-                if ($effectiveDepth >= ($effectiveDist * 1.0)) {
-                    $zone = 3;
-                } elseif ($effectiveDepth >= ($effectiveDist * 0.666)) {
-                    $zone = 2;
-                }
+            $ratio = $V / $H;
+
+            if ($ratio >= 1.0) {
+                $zone = 3; // Steeper than 1:1
+            } elseif ($ratio >= 0.666) {
+                $zone = 2; // Between 1.5:1 and 1:1
+            } else {
+                $zone = 1; // Flatter than 1.5:1
             }
         }
 
-        if ($zone === 3) {
-            $status = "ZONE 3";
-            $message = "WARNING: EXCAVATION IS NOT ALLOWED UNDER TRAIN LOAD. STOP WORK IMMEDIATELY!";
-            $colorClass = "zone-3";
-        } elseif ($zone === 2) {
-            $status = "ZONE 2";
-            $message = "CAUTION: MONITOR EXCAVATION. SUPPORT MAY BE REQUIRED.";
-            $colorClass = "zone-2";
-        } else {
-            $status = "ZONE 1";
-            $message = "SAFE: Excavation is within safe limits.";
-            $colorClass = "zone-1";
-        }
+        $results = [
+            3 => ["ZONE 3", "WARNING: EXCAVATION NOT ALLOWED. STOP WORK!", "zone-3"],
+            2 => ["ZONE 2", "CAUTION: MONITOR EXCAVATION. SUPPORT REQUIRED.", "zone-2"],
+            1 => ["ZONE 1", "SAFE: Excavation is within safe limits.", "zone-1"]
+        ];
 
         return back()->with([
             'zone' => $zone,
-            'status' => $status,
-            'message' => $message,
-            'color' => $colorClass,
+            'status' => $results[$zone][0],
+            'message' => $results[$zone][1],
+            'color' => $results[$zone][2],
             'mm_value' => round($vDepthMm, 2),
-            'dist_mm' => round($distEdgeMm, 2)
+            'dist_mm' => round($distRailMm, 2)
         ]);
     }
 }
