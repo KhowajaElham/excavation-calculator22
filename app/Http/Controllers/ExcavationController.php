@@ -34,45 +34,32 @@ class ExcavationController extends Controller
     $V = $this->convertToInches($request->v_depth, $request->v_unit);
     $dist = $this->convertToInches($request->dist_edge, $request->dist_unit);
 
-      $dist_eff = $dist - 20;
-    $ratio = ($dist_eff > 0) ? ($V / $dist_eff) : 0;
-
-    if ($dist < 20) {
-        $zone = 3; 
-    } 
-    else {
-        if ($dist >= 75) {
-            if ($ratio >= 0.70) $zone = 3; 
-            elseif ($ratio >= 0.54) $zone = 2; 
-            else $zone = 1; 
-        } 
-        elseif ($dist >= 62.9) {
-            if ($ratio >= 0.48) $zone = 3; 
-            else $zone = 1; 
-        } 
-        else {
-            if (round($dist, 1) == 30.0) {
-                // اصلاح نهایی: نسبت ۰.۵۹۰ هنوز زرد است، پس مرز قرمز >= 0.60 است
-                if ($ratio >= 0.60) $zone = 3; 
-                else $zone = 2; // حذف زون سبز در فاصله ۳۰ اینچ
-            } 
-            else {
-                if ($ratio >= 0.54) $zone = 3; 
-                elseif ($ratio >= 0) $zone = 2; 
-                else $zone = 1; 
-            }
-        }
+    if ($dist <= 18.0) {
+        return $this->response(3);
     }
 
+    $effectiveDist = $dist - 18.0;
+
+    $redLimit = $effectiveDist * 0.60;
+    $yellowLimit = $effectiveDist * 0.50;
+
+    if ($V >= $redLimit) {
+        return $this->response(3);
+    } 
+    
+    if ($V >= $yellowLimit) {
+        return $this->response(2);
+    }
+
+    return $this->response(1);
+}
+
+private function response($zone) {
     $results = [
         1 => ['status' => 'ZONE 1', 'color' => 'safe-green'],
         2 => ['status' => 'ZONE 2', 'color' => 'caution-yellow'],
         3 => ['status' => 'ZONE 3', 'color' => 'danger-red'],
     ];
-
-    return back()->with([
-        'status' => $results[$zone]['status'],
-        'color' => $results[$zone]['color']
-    ]);
+    return back()->with($results[$zone]);
 }
 }
