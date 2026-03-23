@@ -34,14 +34,26 @@ class ExcavationController extends Controller
     $V = $this->convertToInches($request->v_depth, $request->v_unit);
     $dist = $this->convertToInches($request->dist_edge, $request->dist_unit);
 
+
+   
     if ($dist <= 18.0) {
         return $this->response(3);
     }
 
-    $effectiveDist = $dist - 18.0;
+    $eff = $dist - 18.0;
 
-    $redLimit = $effectiveDist * 0.60;
-    $yellowLimit = $effectiveDist * 0.50;
+    if ($dist <= 50.0) {
+        $redLimit = $eff * 0.53;
+        $yellowLimit = $eff * 0.50;
+    } 
+    elseif ($dist <= 100.0) {
+        $redLimit = $eff * 0.55;
+        $yellowLimit = $eff * 0.52;
+    } 
+    else {
+        $redLimit = $eff * 0.86;
+        $yellowLimit = $eff * 0.62;
+    }
 
     if ($V >= $redLimit) {
         return $this->response(3);
